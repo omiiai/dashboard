@@ -1,13 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission Control Dashboard</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operations Pulse Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #1f2933;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: rgba(37, 99, 235, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem clamp(1rem, 4vw, 3.5rem);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    h1 {
+      margin: 0;
+      font-size: clamp(1.8rem, 4vw, 2.5rem);
+    }
+    .timestamp {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+    }
+    .card h2 {
+      margin: 0 0 0.25rem;
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .card .value {
+      font-size: 2rem;
+      font-weight: 600;
+    }
+    .trend-up { color: #059669; }
+    .trend-down { color: #dc2626; }
+    .chart-card, .table-card {
+      background: var(--card);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      box-shadow: 0 25px 50px rgba(15, 23, 42, 0.08);
+    }
+    canvas { width: 100% !important; height: auto !important; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    th { color: var(--muted); font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    footer {
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-align: center;
+      margin-top: auto;
+      padding-top: 1rem;
+    }
+  </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script src="bundle.js"></script>
+  <header>
+    <div>
+      <h1>Operations Pulse Dashboard</h1>
+      <p class="timestamp">
+        Last updated: <span id="lastUpdated">—</span>
+      </p>
+    </div>
+    <div class="badge">Status: Stable</div>
+  </header>
+
+  <section class="cards" aria-label="Key metrics">
+    <article class="card">
+      <h2>Revenue (MTD)</h2>
+      <div class="value"></div>
+      <p class="trend-up">? 8.4% vs last month</p>
+    </article>
+    <article class="card">
+      <h2>Active Users</h2>
+      <div class="value">12,480</div>
+      <p class="trend-up">? 4.1% week over week</p>
+    </article>
+    <article class="card">
+      <h2>Net Retention</h2>
+      <div class="value">108%</div>
+      <p class="trend-up">? 3 pts this quarter</p>
+    </article>
+    <article class="card">
+      <h2>Support Backlog</h2>
+      <div class="value">37 tickets</div>
+      <p class="trend-down">? 12% vs last week</p>
+    </article>
+  </section>
+
+  <section class="chart-card" aria-label="Monthly trend chart">
+    <h2 style="margin-top:0">Monthly Revenue Trend</h2>
+    <canvas id="trendChart"></canvas>
+  </section>
+
+  <section class="table-card" aria-label="Key initiatives">
+    <h2 style="margin-top:0">Key Initiatives</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Initiative</th>
+          <th>Owner</th>
+          <th>Status</th>
+          <th>Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lifecycle email refresh</td>
+          <td>Rivera</td>
+          <td>In progress</td>
+          <td>+6% activation rate</td>
+        </tr>
+        <tr>
+          <td>Data pipeline hardening</td>
+          <td>Singh</td>
+          <td>Blocked (infra)</td>
+          <td>Reduce nightly failures</td>
+        </tr>
+        <tr>
+          <td>Support AI assistant</td>
+          <td>Khan</td>
+          <td>Beta testing</td>
+          <td>-18% first response time</td>
+        </tr>
+        <tr>
+          <td>Billing observability</td>
+          <td>Harper</td>
+          <td>Complete</td>
+          <td>Zero critical incidents</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    Static dashboard generated for GitHub Pages · Customize data in <code>index.html</code>
+  </footer>
+
+  <script>
+    const tsElement = document.getElementById('lastUpdated');
+    tsElement.textContent = new Date().toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+
+    const ctx = document.getElementById('trendChart');
+    const trendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'],
+        datasets: [{
+          label: 'Revenue (USD, thousands)',
+          data: [360, 388, 420, 455, 470, 482],
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.18)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 4,
+          pointBackgroundColor: '#ffffff',
+          pointBorderColor: '#2563eb',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: false,
+            suggestedMin: 300,
+            ticks: {
+              callback: (value) => $k
+            }
+          },
+          x: {
+            grid: { display: false }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => Revenue: {ctx.formattedValue}k
+            }
+          }
+        }
+      }
+    });
+  </script>
 </body>
 </html>
